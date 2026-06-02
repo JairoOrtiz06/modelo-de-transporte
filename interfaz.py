@@ -178,12 +178,30 @@ class AplicacionTransporte:
             sticky="ew",
             pady=(2, 10)
         )
+        self.interpretacion_var = tk.StringVar(
+            value="Aqui aparecera una explicacion clara de la solucion obtenida."
+        )
+        self.interpretacion = tk.Text(
+            self.resultados,
+            height=7,
+            wrap="word",
+            bg="#F8FAFC",
+            fg=self.colores["texto"],
+            relief="flat",
+            borderwidth=0,
+            padx=12,
+            pady=10,
+            font=("Segoe UI", 10)
+        )
+        self.interpretacion.grid(row=2, column=0, sticky="ew", pady=(0, 12))
+        self.interpretacion.insert("1.0", self.interpretacion_var.get())
+        self.interpretacion.configure(state="disabled")
 
         self.tabla_asignaciones = self._crear_tabla(
             self.resultados,
             ("origen", "destino", "cantidad", "costo_unitario", "costo"),
             ("Origen", "Destino", "Cantidad", "Costo unit.", "Costo"),
-            2,
+            3,
             alto=7
         )
 
@@ -399,6 +417,43 @@ class AplicacionTransporte:
             f"Costo minimo: {self._moneda(problema.costo_total)}"
         )
         self.resumen_var.set(resumen)
+        self._mostrar_interpretacion(problema)
+
+    def _mostrar_interpretacion(self, problema):
+        lineas = [
+            f"El costo minimo de transporte para {problema.empresa} es {self._moneda(problema.costo_total)}.",
+            "",
+            "Distribucion recomendada:"
+        ]
+
+        for asignacion in problema.asignaciones:
+            origen = asignacion["origen"]
+            destino = asignacion["destino"]
+            cantidad = self._formato(asignacion["cantidad"])
+            costo_unitario = self._moneda(asignacion["costo_unitario"])
+            costo = self._moneda(asignacion["costo"])
+
+            if "ficticia" in origen.lower() or "ficticia" in destino.lower():
+                lineas.append(
+                    f"- {origen} cubre {cantidad} unidades hacia {destino}. "
+                    f"Esta asignacion solo balancea el modelo y no representa un envio real."
+                )
+            else:
+                lineas.append(
+                    f"- {origen} envia {cantidad} unidades a {destino}, "
+                    f"con costo unitario {costo_unitario} y costo total {costo}."
+                )
+
+        if problema.estado_balance != "BALANCEADO":
+            lineas.extend([
+                "",
+                "Como el problema no estaba balanceado, se agrego un centro ficticio con costo cero."
+            ])
+
+        self.interpretacion.configure(state="normal")
+        self.interpretacion.delete("1.0", "end")
+        self.interpretacion.insert("1.0", "\n".join(lineas))
+        self.interpretacion.configure(state="disabled")
 
     def _actualizar_tabla_costos(self, problema):
         ventas = problema.ventas_balanceadas or problema.ventas
