@@ -2,12 +2,14 @@ import customtkinter as ctk
 from tkinter import messagebox
 import tkinter as tk
 from tkinter import ttk
+from exportar import exportar_reporte_pdf
+from tkinter import filedialog
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 try:
-    from graficas import grafica_demanda, grafica_oferta
+    from graficas import grafica_asignaciones_bytes, grafica_asignaciones
     from modelos import ProblemaTransporte
     from transporte import resolver_problema
     from validaciones import convertir_numero, validar_balance, validar_matriz
@@ -193,8 +195,8 @@ class AplicacionTransporte(ctk.CTk):
         sec("ACCIONES")
         self._btn(inner, "▶   Resolver",       self.resolver,          color=C["blue"],  hover=C["blue2"])
         self._btn(inner, "📋  Crear tablas",    self.generar_formulario, sec=True)
-        self._btn(inner, "📊  Graficar oferta", self.graficar_oferta,    sec=True)
-        self._btn(inner, "📈  Graficar demanda",self.graficar_demanda,   sec=True)
+        self._btn(inner, "📊  Ver Grafico", self.graficar_asignaciones,    sec=True)
+        self._btn(inner, "📈  Exportar PDF",self.exportar_pdf,   sec=True)
 
         # Estado
         sec("ESTADO DEL PROBLEMA")
@@ -635,6 +637,50 @@ class AplicacionTransporte(ctk.CTk):
     def _fmt(self, v): return str(int(v)) if float(v).is_integer() else f"{v:.2f}"
     def _mon(self, v): return f"${v:,.2f}"
 
+    def exportar_pdf(self):
+   
+        if self.ultimo_problema is None:
+            messagebox.showwarning(
+                "Sin resultados",
+                "Primero debes resolver el problema antes de exportar el PDF."
+            )
+            return
+    
+        ruta = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("Archivo PDF", "*.pdf")],
+            initialfile=f"reporte_{self.ultimo_problema.empresa.replace(' ', '_')}.pdf",
+            title="Guardar reporte PDF"
+        )
+    
+        if not ruta:
+            return  # El usuario canceló el diálogo
+    
+        try:
+            self.badge_var.set("⬤  Exportando...")
+            self.status_var.set("  Generando PDF...")
+            self.update_idletasks()  # Refresca la UI antes de generar
+    
+            ruta_generada = exportar_reporte_pdf(self.ultimo_problema, ruta)
+    
+            self.badge_var.set("⬤  Resuelto")
+            self.status_var.set(f"  PDF exportado correctamente: {ruta_generada}")
+            messagebox.showinfo("PDF generado", f"Reporte guardado en:\n{ruta_generada}")
+    
+        except Exception as e:
+            self.badge_var.set("⬤  Error")
+            messagebox.showerror("Error al exportar", f"No se pudo generar el PDF:\n{str(e)}")
+
+
+    def graficar_asignaciones(self):
+        if self.ultimo_problema is None:
+            messagebox.showwarning(
+                "Sin resultados",
+                "Primero resolvé el problema para poder graficar."
+            )
+            return
+        from graficas import grafica_asignaciones
+        grafica_asignaciones(self.ultimo_problema)
 
 def iniciar_app():
     app = AplicacionTransporte()
