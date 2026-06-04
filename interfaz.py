@@ -392,7 +392,7 @@ class AplicacionTransporte(ctk.CTk):
 
         # Canvas scroll horizontal
         canvas = tk.Canvas(self._form_card, bg=C["panel"],
-                            highlightthickness=0, height=250)
+                            highlightthickness=0)
         canvas.pack(fill="x")
         sx = ctk.CTkScrollbar(self._form_card, orientation="horizontal",
                                command=canvas.xview)
@@ -401,8 +401,14 @@ class AplicacionTransporte(ctk.CTk):
 
         tabla = ctk.CTkFrame(canvas, fg_color=C["panel"])
         win   = canvas.create_window((0, 0), window=tabla, anchor="nw")
-        tabla.bind("<Configure>", lambda _: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, height=e.height))
+
+        def ajustar_canvas(_=None):
+            canvas.update_idletasks()
+            bbox = canvas.bbox("all")
+            if bbox:
+                canvas.configure(scrollregion=bbox, height=bbox[3] - bbox[1])
+
+        tabla.bind("<Configure>", ajustar_canvas)
 
         EW = dict(padx=4, pady=3)
 
